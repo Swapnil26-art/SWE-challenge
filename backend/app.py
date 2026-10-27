@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="frontend/dist", static_url_path='')
 
 # Elexon API endpoints
 ACTUALS_URL = "https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/FUELHH/stream"
@@ -11,7 +11,8 @@ FORECAST_URL = "https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/WI
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # Serve React build index.html
+    return app.send_static_file("index.html")
 
 @app.route("/api/actuals")
 def get_actuals():
@@ -59,8 +60,8 @@ def get_forecasts():
 def get_accuracy():
     """Calculate accuracy of forecasts vs actuals."""
     try:
-        actuals_response = requests.get("/api/actuals")
-        forecasts_response = requests.get("/api/forecasts")
+        actuals_response = requests.get(ACTUALS_URL, params={"fuelType": "WIND"})
+        forecasts_response = requests.get(FORECAST_URL)
 
         if actuals_response.status_code != 200 or forecasts_response.status_code != 200:
             return jsonify({"success": False, "error": "Failed to fetch data"})

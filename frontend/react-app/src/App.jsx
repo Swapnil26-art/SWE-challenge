@@ -109,7 +109,7 @@ function App() {
               </div>
               <div class="stat-card">
                 <h3>Avg Error (MW)</h3>
-                <p>{accuracyData.averageError}</p>
+                <p>{accuracyData.summary.averageError}</p>
               </div>
               <div class="stat-card">
                 <h3>Avg % Error</h3>

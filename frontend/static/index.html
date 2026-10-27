@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Wind Power Forecast & Accuracy</title>
+  <style>
+    body {font-family: Arial, sans-serif; margin: 2rem;}
+    .btn {padding: 0.5rem 1rem; background:#0066cc; color:#fff; border:none; cursor:pointer;}
+    .btn:disabled {background:#999;}
+    .error {color:red;}
+    .summary {margin-top:1rem;}
+    table {border-collapse: collapse; width:100%; margin-top:1rem;}
+    th, td {border:1px solid #ddd; padding:0.5rem; text-align:left;}
+    th {background:#f4f4f4;}
+  </style>
+</head>
+<body>
+  <h1>UK Wind Power Forecast & Accuracy</h1>
+  <button id="gen" class="btn">Generate Analysis</button>
+  <span id="status"></span>
+  <div id="error" class="error"></div>
+  <div id="results" class="summary"></div>
+  <script>
+    const genBtn = document.getElementById('gen');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const resultsEl = document.getElementById('results');
+
+    async function fetchJson(url) {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'unknown');
+      return data;
+    }
+
+    async function generate() {
+      genBtn.disabled = true;
+      statusEl.textContent = 'Loading...';
+      errorEl.textContent = '';
+      resultsEl.innerHTML = '';
+      try {
+        const [{ data: actuals }, { data: forecasts }, { data, summary }] = await Promise.all([
+          fetchJson('/api/actuals'),
+          fetchJson('/api/forecasts'),
+          fetchJson('/api/accuracy')
+        ]);
+        // Show summary
+        const s = summary;
+        resultsEl.innerHTML = `
+          <h2>Summary</h2>
+          <p>Total Samples: ${s.totalSamples}</p>
+          <p>Average Error (MW): ${s.averageError}</p>
+          <p>Average % Error: ${s.averagePercentageError}%</p>
+          <p>Max % Error: ${s.maxPercentageError}%</p>
+          <h3>Details</h3>
+          <table>
+            <thead><tr><th>Start Time</th><th>Publish Time</th><th>Forecast</th><th>Actual</th><th>Error</th><th>% Error</th></tr></thead>
+            <tbody>${data.map(d => `<tr><td>${d.startTime}</td><td>${d.publishTime}</td><td>${d.forecast}</td><td>${d.actual}</td><td>${d.error}</td><td>${d.percentageError}%</td></tr>`).join('')}</tbody>
+          </table>`;
+      } catch (e) {
+        errorEl.textContent = 'Error: ' + e.message;
+      } finally {
+        genBtn.disabled = false;
+        statusEl.textContent = '';
+      }
+    }
+
+    genBtn.addEventListener('click', generate);
+  </script>
+</body>
+</html>
