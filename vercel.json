@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "flask"
+    },
+    "react-app": {
+      "root": "frontend/react-app",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend",
+        "fragment": "$1"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": "react-app",
+      "fragment": "$1"
+    }
+  ]
+}
