@@ -12,7 +12,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/actuals');
+      const response = await fetch(`${window.location.origin}/api/actuals`);
       const data = await response.json();
       if (data.success) {
         setActualsData(data.data);
@@ -30,7 +30,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/forecasts');
+      const response = await fetch(`${window.location.origin}/api/forecasts`);
       const data = await response.json();
       if (data.success) {
         setForecastsData(data.data);
@@ -48,7 +48,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/accuracy');
+      const response = await fetch(`${window.location.origin}/api/accuracy`);
       const data = await response.json();
       if (data.success) {
         setAccuracyData(data);
@@ -113,11 +113,11 @@ function App() {
               </div>
               <div class="stat-card">
                 <h3>Avg % Error</h3>
-                <p>{accuracyData.averagePercentageError}%</p>
+                <p>{accuracyData.summary.averagePercentageError}%</p>
               </div>
               <div class="stat-card">
                 <h3>Max % Error</h3>
-                <p>{accuracyData.maxPercentageError}%</p>
+                <p>{accuracyData.summary.maxPercentageError}%</p>
               </div>
             </div>
 
