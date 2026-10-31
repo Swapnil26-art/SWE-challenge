@@ -95,16 +95,14 @@ def get_forecasts():
     return jsonify({"success": True, "data": data, "source": source, "count": len(data)})
 
 
-@app.route("/api/accuracy")
-def get_accuracy():
-    act_params = {"fuelType": "WIND", "from": "2026-01-01", "to": "2026-02-01", "format": "json"}
-    fct_params = {"from": "2026-01-01", "to": "2026-02-01", "format": "json"}
-
-    actuals_raw   = _try_elexon_jan2026(FUELHH_URL,  act_params)  or _FB_ACTUALS
-    forecasts_raw = _try_elexon_jan2026(WINDFOR_URL, fct_params)  or _FB_FORECASTS
-
+def _build_rows(actuals_raw, forecasts_raw):
+    """Join actuals and forecasts on startTime (latest publish wins)."""
     # Build actuals lookup
-    actuals_map = {r["startTime"]: r.get("generation", 0) for r in actuals_raw if isinstance(r, dict)}
+    actuals_map = {
+        r["startTime"]: (r.get("generation") or 0)
+        for r in actuals_raw
+        if isinstance(r, dict) and r.get("startTime")
+    }
 
     # Keep only latest publishTime per startTime (day-ahead decision point)
     forecast_map = {}
@@ -112,14 +110,14 @@ def get_accuracy():
         if not isinstance(r, dict):
             continue
         st = r.get("startTime", "")
+        if not st:
+            continue
         pt = r.get("publishTime", "")
-        gen = r.get("generation", 0)
+        gen = r.get("generation") or 0
         if st not in forecast_map or pt > forecast_map[st]["publishTime"]:
             forecast_map[st] = {"publishTime": pt, "generation": gen}
 
     rows = []
-    abs_errors, sq_errors, pct_errors, biases = [], [], [], []
-
     for st in sorted(forecast_map):
         if st not in actuals_map:
             continue
@@ -128,7 +126,6 @@ def get_accuracy():
         pub = forecast_map[st]["publishTime"]
         err     = fct - act
         abs_err = abs(err)
-        sq_err  = err ** 2
         pct     = (abs_err / max(abs(act), 1)) * 100
 
         rows.append({
@@ -140,10 +137,36 @@ def get_accuracy():
             "absError":        round(abs_err, 1),
             "percentageError": round(pct, 2),
         })
-        abs_errors.append(abs_err)
-        sq_errors.append(sq_err)
-        pct_errors.append(pct)
-        biases.append(err)
+
+    return rows
+
+
+@app.route("/api/accuracy")
+def get_accuracy():
+    act_params = {"fuelType": "WIND", "from": "2026-01-01", "to": "2026-02-01", "format": "json"}
+    fct_params = {"from": "2026-01-01", "to": "2026-02-01", "format": "json"}
+
+    actuals_raw   = _try_elexon_jan2026(FUELHH_URL,  act_params)
+    forecasts_raw = _try_elexon_jan2026(WINDFOR_URL, fct_params)
+
+    source = "elexon" if (actuals_raw and forecasts_raw) else "fallback"
+    if not actuals_raw or not forecasts_raw:
+        actuals_raw, forecasts_raw = _FB_ACTUALS, _FB_FORECASTS
+
+    rows = _build_rows(actuals_raw, forecasts_raw)
+
+    # One source may be live while the other is simulated (different timestamp
+    # formats), or Elexon may return no overlapping slots. In that case use the
+    # simulated series for BOTH sides so the dashboard is never empty.
+    if not rows:
+        actuals_raw, forecasts_raw = _FB_ACTUALS, _FB_FORECASTS
+        source = "fallback"
+        rows = _build_rows(actuals_raw, forecasts_raw)
+
+    abs_errors = [r["absError"] for r in rows]
+    sq_errors  = [r["error"] ** 2 for r in rows]
+    pct_errors = [r["percentageError"] for r in rows]
+    biases     = [r["error"] for r in rows]
 
     n = max(len(rows), 1)
     mae  = sum(abs_errors) / n
@@ -173,6 +196,7 @@ def get_accuracy():
 
     return jsonify({
         "success":      True,
+        "source":       source,
         "data":         rows,
         "dailySummary": daily_summary,
         "summary": {

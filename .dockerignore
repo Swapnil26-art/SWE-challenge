@@ -1,0 +1,10 @@
+.git
+.gitignore
+.dockerignore
+.vercel
+**/node_modules
+**/__pycache__
+**/*.pyc
+frontend/react-app/dist
+README.md
+scratch

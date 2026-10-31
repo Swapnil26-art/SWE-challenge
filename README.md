@@ -118,5 +118,26 @@ heroku open -a <your-app-name>
 
 ## Deployment on Vercel
 
-Push to GitHub and import the repository in [vercel.com/new](https://vercel.com/new).  
-Vercel detects the `Dockerfile` and builds automatically.
+The repository deploys as **one Vercel project with two services**, configured in
+`vercel.json`:
+
+| Service    | Root                     | Framework | Serves                      |
+| ---------- | ------------------------ | --------- | --------------------------- |
+| `frontend` | `frontend/react-app/`    | Vite      | `/` and all static assets   |
+| `backend`  | `backend/`               | Flask     | `/api/*`                    |
+
+Vercel rewrites `/api/*` to the Flask service and every other path to the Vite
+service, so the UI and API share a single domain and **no environment variables
+are required**.
+
+1. Push the repository to GitHub.
+2. Import it at [vercel.com/new](https://vercel.com/new).
+3. Keep **Root Directory** as the repository root and leave the framework/build
+   settings at their defaults — `vercel.json` provides them.
+4. Deploy.
+
+> ⚠️ **Never commit `node_modules/` or `frontend/react-app/dist/`.** They contain
+> platform-specific binaries. On Linux, a committed Windows `node_modules` makes
+> the build fail with `sh: vite: Permission denied` (exit code 126). Both paths
+> are ignored in `.gitignore`.
+
