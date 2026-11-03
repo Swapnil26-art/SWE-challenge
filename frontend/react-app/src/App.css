@@ -132,3 +132,5 @@ tr:hover td { background: #f8fafc; }
   .stat-value { font-size: 1.5rem; }
   .tabs { flex-direction: column; }
 }
+
+.forecast-basis-note { padding: 8px 14px; border-left: 4px solid #6366f1; background: rgba(99,102,241,.08); border-radius: 8px; font-size: 0.85rem; color: #475569; margin-bottom: 14px; }

@@ -28,3 +28,8 @@ env/
 .claude/
 .DS_Store
 Thumbs.db
+
+# ── Local scratch / unrelated artifacts ─────────────────────────
+scratch/
+frontend/medbot/
+frontend/static/

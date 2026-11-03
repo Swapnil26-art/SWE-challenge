@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import {
   Chart as ChartJS,
@@ -19,7 +19,8 @@ ChartJS.register(
   BarElement, Title, Tooltip, Legend, Filler
 );
 
-const API = window.location.origin;
+const API = import.meta.env.VITE_API_URL || window.location.origin;
+const APP_API_KEY = import.meta.env.VITE_APP_API_KEY || '';
 
 function StatCard({ label, value, unit = '', color = '#6366f1', sub = '' }) {
   return (
@@ -54,7 +55,11 @@ export default function App() {
   const fetchAll = async () => {
     setState(s => ({ ...s, loading: true, error: null, accuracy: null }));
     try {
-      const res = await fetch(`${API}/api/accuracy`);
+      const headers = { Accept: 'application/json' };
+      if (APP_API_KEY) {
+        headers['x-api-key'] = APP_API_KEY;
+      }
+      const res = await fetch(`${API}/api/accuracy`, { headers });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'API returned failure');
@@ -67,7 +72,11 @@ export default function App() {
     }
   };
 
+  // Load the analysis automatically when the app opens
+  useEffect(() => { fetchAll(); }, []);
+
   const { loading, error, accuracy, activeTab, dataSource } = state;
+  const forecastBasis = accuracy?.forecastBasis;
   const summary = accuracy?.summary;
   const daily = accuracy?.dailySummary || [];
   const rows = accuracy?.data || [];
@@ -177,7 +186,7 @@ export default function App() {
             <ul className="welcome-list">
               <li>📊 Daily actual vs forecast comparison charts</li>
               <li>📉 Error distribution analysis (MAE, RMSE, MAPE)</li>
-              <li>🗓️ Full January 2026 half-hourly data (1488 slots)</li>
+              <li>🗓️ Every hour of January 2026 (~744 comparison points)</li>
               <li>🔄 Live data from Elexon BMRS API with intelligent fallback</li>
             </ul>
             <button className="btn-generate btn-welcome" onClick={fetchAll}>
@@ -193,10 +202,13 @@ export default function App() {
             <div className="data-badge">
               <span className="badge-dot" /> {dataSource}
             </div>
+            {forecastBasis && (
+              <div className="forecast-basis-note">⏱ {forecastBasis}</div>
+            )}
 
             {/* ── KPI CARDS ──────────────────────────────────────────────────── */}
             <section className="kpi-grid">
-              <StatCard label="Half-Hour Slots" value={summary.totalSamples.toLocaleString()} color="#6366f1" sub="Jan 2026 (31 days)" />
+              <StatCard label="Hourly Samples" value={summary.totalSamples.toLocaleString()} color="#6366f1" sub="Jan 2026 (31 days)" />
               <StatCard label="MAE" value={summary.mae.toLocaleString()} unit=" MW" color="#10b981" sub="Mean Absolute Error" />
               <StatCard label="RMSE" value={summary.rmse.toLocaleString()} unit=" MW" color="#f59e0b" sub="Root Mean Sq Error" />
               <StatCard label="MAPE" value={summary.mape} unit="%" color="#8b5cf6" sub="Mean Abs % Error" />

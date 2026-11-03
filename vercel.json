@@ -1,30 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "backend": {
-      "root": "backend/",
-      "framework": "flask"
-    },
-    "frontend": {
-      "root": "frontend/react-app/",
-      "framework": "vite",
-      "installCommand": "npm ci",
-      "buildCommand": "npm run build",
-      "outputDirectory": "dist"
+  "version": 2,
+  "buildCommand": "npm run build --prefix frontend/react-app",
+  "outputDirectory": "frontend/react-app/dist",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "source": "/api",
+      "destination": "/api/index.py"
     },
     {
-      "source": "/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }
