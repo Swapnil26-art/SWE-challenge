@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": null,
-  "buildCommand": "npm run build --prefix frontend/react-app",
+  "buildCommand": "npm ci --prefix frontend/react-app && npm run build --prefix frontend/react-app",
   "outputDirectory": "frontend/react-app/dist",
   "functions": {
     "api/index.py": {
